@@ -10,7 +10,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://your-frontend-domain.vercel.app",
+      "https://crewaura2-0.vercel.app",
     ],
     methods: ["GET", "POST"],
     credentials: true,
