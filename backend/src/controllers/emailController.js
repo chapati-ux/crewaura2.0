@@ -1,4 +1,4 @@
-import transporter from "../config/mailer.js";
+import resend from "../config/resend.js";
 
 export const sendEmail = async (req, res) => {
   try {
@@ -26,58 +26,48 @@ export const sendEmail = async (req, res) => {
     const row = (label, value) =>
       value ? `<p><strong>${label}:</strong> ${value}</p>` : "";
 
-    // Email to Admin
-    const adminMail = {
-      from: `"Website Contact Form" <${process.env.EMAIL_USER}>`,
-      to: process.env.ADMIN_EMAIL,
-      replyTo: email,
-      subject: `New Inquiry: ${eventType}${preferredDate ? ` — ${preferredDate}` : ""}`,
-      html: `
-        <h2>New Contact Form Submission</h2>
+    const adminHtml = `
+      <h2>New Contact Form Submission</h2>
+      ${row("Name", name)}
+      ${row("Email", email)}
+      ${row("Phone", phone)}
+      ${row("Event Type", eventType)}
+      ${row("Preferred Date", preferredDate)}
+      ${row("Expected Guests", guestCount)}
+      ${row("Budget Range", budgetRange)}
+      ${row("Venue Preference", venuePreference)}
+      <hr>
+      <p><strong>Additional Details:</strong></p>
+      <p>${message ? message.replace(/\n/g, "<br>") : "—"}</p>
+    `;
 
-        ${row("Name", name)}
-        ${row("Email", email)}
-        ${row("Phone", phone)}
-        ${row("Event Type", eventType)}
-        ${row("Preferred Date", preferredDate)}
-        ${row("Expected Guests", guestCount)}
-        ${row("Budget Range", budgetRange)}
-        ${row("Venue Preference", venuePreference)}
-
-        <hr>
-
-        <p><strong>Additional Details:</strong></p>
-        <p>${message ? message.replace(/\n/g, "<br>") : "—"}</p>
-      `,
-    };
-
-    // Confirmation email to client
-    const clientMail = {
-      from: `"Crew Aura" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: "We've received your message",
-      html: `
-        <h2>Hello ${name},</h2>
-
-        <p>Thank you for reaching out to us.</p>
-
-        <p>We've received your inquiry regarding your <strong>${eventType}</strong>${
+    const clientHtml = `
+      <h2>Hello ${name},</h2>
+      <p>Thank you for reaching out to us.</p>
+      <p>We've received your inquiry regarding your <strong>${eventType}</strong>${
         preferredDate ? ` on <strong>${preferredDate}</strong>` : ""
       }.</p>
-
-        <p>Our team will review the details and get back to you within 24 hours.</p>
-
-        <br>
-
-        <p>Best Regards,</p>
-        <h3>Crew Aura</h3>
-      `,
-    };
+      <p>Our team will review the details and get back to you within 24 hours.</p>
+      <br>
+      <p>Best Regards,</p>
+      <h3>Crew Aura</h3>
+    `;
 
     // Send both emails
     await Promise.all([
-      transporter.sendMail(adminMail),
-      transporter.sendMail(clientMail),
+      resend.emails.send({
+        from: "Website Contact Form <onboarding@resend.dev>", // see note below
+        to: process.env.ADMIN_EMAIL,
+        replyTo: email,
+        subject: `New Inquiry: ${eventType}${preferredDate ? ` — ${preferredDate}` : ""}`,
+        html: adminHtml,
+      }),
+      resend.emails.send({
+        from: "Crew Aura <onboarding@resend.dev>",
+        to: email,
+        subject: "We've received your message",
+        html: clientHtml,
+      }),
     ]);
 
     return res.status(200).json({
@@ -93,3 +83,9 @@ export const sendEmail = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+
